@@ -37,6 +37,10 @@ class TaskManager:
         self.tasks[task_id]['completed'] = True
         self.save()
 
+    def search(self, keyword):
+        return [task for task in self.tasks if keyword.lower() in task['task'].lower()]
+
+
 
 
 def main():
@@ -57,6 +61,9 @@ def main():
     # Complete Task
     complete_parser = subparsers.add_parser('complete', help='Mark a task as complete')
     complete_parser.add_argument('task_id', type=int, help='The task number to complete')
+
+    search_parser = subparsers.add_parser('search', help='Search for a keyword in tasks')
+    search_parser.add_argument('keyword', type=str, help='Keyword to search')
 
     args = parser.parse_args()
     
@@ -85,6 +92,15 @@ def main():
             print(Fore.BLUE + f"✅ Completed: {tm.tasks[args.task_id -1 ]['task']}")
         else:
             print(Fore.YELLOW + "⚠️ Invalid task number.")
+    elif args.command == 'search':
+        results = tm.search(args.keyword)
+        if results:
+            print(Fore.CYAN + f"🔍 Found {len(results)} task(s):")
+            for i, task in enumerate(results, start=1):
+                status = '✅' if task['completed'] else '❌'
+                print(f"{i}. {status} {task['task']}")
+        else:
+            print(Fore.YELLOW + "No tasks found.")
     else:
         parser.print_help()
 
