@@ -1,4 +1,19 @@
 import argparse
+import json 
+import os
+
+TASKS_FILE = 'tasks.json'
+
+def load_tasks():
+    if not os.path.exists(TASKS_FILE):
+        with open(TASKS_FILE, 'w') as f:
+            json.dump([], f)
+    with open(TASKS_FILE, 'r') as f:
+        return json.load(f)
+
+def save_tasks(tasks):
+    with open(TASKS_FILE, 'w') as f:
+        json.dump(tasks, f, indent=2)
 
 def main():
     parser = argparse.ArgumentParser(description="Simple To-Do CLI App")
@@ -20,15 +35,33 @@ def main():
     complete_parser.add_argument('task_id', type=int, help='The task number to complete')
 
     args = parser.parse_args()
+    tasks = load_tasks()
 
     if args.command == 'add':
-        print(f"🟩 Add task: {args.task}")
+        tasks.append({'task': args.task, 'completed': False})
+        save_tasks(tasks)
+        print(f"🟩 Added: {args.task}")
     elif args.command == 'list':
-        print("📋 List tasks")
+        if not tasks:
+            print("No tasks found.")
+        else:
+            for i, task in enumerate(tasks, start=1):
+                status = '✅' if task['completed'] else '❌'
+                print(f"{i}.{status} {task['task']}")
     elif args.command == 'remove':
-        print(f"🗑️ Remove task #{args.task_id}")
+        if 1 <= args.task_id <= len(tasks):
+            removed = tasks.pop(args.task_id - 1)
+            save_tasks(tasks)
+            print(f"🗑️ Removed: {removed['task']}")
+        else:
+            print("⚠️ Invalid task number.")
     elif args.command == 'complete':
-        print(f"✅ Complete task #{args.task_id}")
+        if 1 <= args.task_id <= len(tasks):
+            tasks[args.task_id - 1]['completed'] = True
+            save_tasks(tasks)
+            print(f"✅ Completed: {tasks[args.task_id -1 ]['task']}")
+        else:
+            print("⚠️ Invalid task number.")
     else:
         parser.print_help()
 
