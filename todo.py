@@ -1,19 +1,43 @@
 import argparse
 import json 
 import os
+from colorama import Fore, Style, init
+init(autoreset=True)  # Auto reset color after each print
 
-TASKS_FILE = 'tasks.json'
 
-def load_tasks():
-    if not os.path.exists(TASKS_FILE):
-        with open(TASKS_FILE, 'w') as f:
-            json.dump([], f)
-    with open(TASKS_FILE, 'r') as f:
-        return json.load(f)
+class TaskManager:
+    def __init__(self, filepath='tasks.json'):
+        self.filepath = filepath
+        self.tasks = self.load()
 
-def save_tasks(tasks):
-    with open(TASKS_FILE, 'w') as f:
-        json.dump(tasks, f, indent=2)
+    def load(self):
+        if not os.path.exists(self.filepath):
+            with open(self.filepath, 'w') as f:
+                json.dump([], f)
+        with open(self.filepath, 'r') as f:
+            return json.load(f)
+        
+    def save(self):
+        with open(self.filepath, 'w') as f:
+            json.dump(self.tasks, f, indent=2)
+
+    def add(self, task):
+        self.tasks.append({'task': task, 'completed': False})
+        self.save()
+
+    def list(self):
+        return self.tasks
+
+    def remove(self, task_id):
+        removed_task = self.tasks.pop(task_id)
+        self.save()
+        return removed_task
+    
+    def complete(self, task_id):
+        self.tasks[task_id]['completed'] = True
+        self.save()
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Simple To-Do CLI App")
@@ -35,33 +59,32 @@ def main():
     complete_parser.add_argument('task_id', type=int, help='The task number to complete')
 
     args = parser.parse_args()
-    tasks = load_tasks()
+    
+    tm = TaskManager()
 
     if args.command == 'add':
-        tasks.append({'task': args.task, 'completed': False})
-        save_tasks(tasks)
-        print(f"🟩 Added: {args.task}")
+       tm.add(args.task)
+       print(Fore.GREEN + f"✅ Added: {args.task}")
     elif args.command == 'list':
+        tasks = tm.list()
         if not tasks:
             print("No tasks found.")
         else:
             for i, task in enumerate(tasks, start=1):
-                status = '✅' if task['completed'] else '❌'
+                status = Fore.GREEN + '✅' if task['completed'] else Fore.RED + '❌'
                 print(f"{i}.{status} {task['task']}")
     elif args.command == 'remove':
-        if 1 <= args.task_id <= len(tasks):
-            removed = tasks.pop(args.task_id - 1)
-            save_tasks(tasks)
-            print(f"🗑️ Removed: {removed['task']}")
+        if 1 <= args.task_id <= len(tm.tasks):
+            removed = tm.remove(args.task_id - 1)
+            print(Fore.RED + f"🗑️ Removed: {removed['task']}")
         else:
-            print("⚠️ Invalid task number.")
+            print(Fore.YELLOW + "⚠️ Invalid task number.")
     elif args.command == 'complete':
-        if 1 <= args.task_id <= len(tasks):
-            tasks[args.task_id - 1]['completed'] = True
-            save_tasks(tasks)
-            print(f"✅ Completed: {tasks[args.task_id -1 ]['task']}")
+        if 1 <= args.task_id <= len(tm.tasks):
+            tm.complete(args.task_id - 1)
+            print(Fore.BLUE + f"✅ Completed: {tm.tasks[args.task_id -1 ]['task']}")
         else:
-            print("⚠️ Invalid task number.")
+            print(Fore.YELLOW + "⚠️ Invalid task number.")
     else:
         parser.print_help()
 
